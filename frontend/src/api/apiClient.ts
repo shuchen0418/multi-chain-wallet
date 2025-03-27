@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiResponse } from '../types';
+import { convertKeysToSnakeCase } from '../utils/stringUtils';
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
@@ -18,6 +19,18 @@ apiClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // 转换请求数据中的参数命名格式
+    if (config.data) {
+      // 将请求体中的camelCase转为snake_case
+      config.data = convertKeysToSnakeCase(config.data);
+    }
+
+    // 如果有查询参数，也转换它们
+    if (config.params) {
+      config.params = convertKeysToSnakeCase(config.params);
+    }
+
     return config;
   },
   (error) => {

@@ -43,12 +43,16 @@ export const walletApi = {
 
   // 获取地址余额
   getBalance: (address: string, chainType: ChainType) => {
-    return api.get<Balance>(`/balances/${address}?chainType=${chainType}`);
+    return api.get<Balance>(`/balances/${address}`, {
+      params: { chainType }
+    });
   },
 
   // 获取代币余额
   getTokenBalance: (address: string, tokenAddress: string, chainType: ChainType) => {
-    return api.get<TokenBalance>(`/balances/${address}/token/${tokenAddress}?chainType=${chainType}`);
+    return api.get<TokenBalance>(`/balances/${address}/token/${tokenAddress}`, {
+      params: { chainType }
+    });
   },
 
   // 创建交易
@@ -68,12 +72,16 @@ export const walletApi = {
 
   // 获取交易状态
   getTransactionStatus: (txHash: string, chainType: ChainType) => {
-    return api.get<string>(`/transactions/${txHash}/status?chainType=${chainType}`);
+    return api.get<string>(`/transactions/${txHash}/status`, {
+      params: { chainType }
+    });
   },
 
   // 获取交易历史
   getTransactionHistory: (address: string, chainType: ChainType) => {
-    return api.get<SignedTransaction[]>(`/transactions?address=${address}&chainType=${chainType}`);
+    return api.get<SignedTransaction[]>(`/transactions`, {
+      params: { address, chainType }
+    });
   },
 };
 

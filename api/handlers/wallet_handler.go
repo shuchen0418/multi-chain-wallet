@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"multi-chain-wallet/internal/api"
 	"multi-chain-wallet/internal/service"
 	"multi-chain-wallet/internal/wallet"
 )
@@ -36,6 +36,18 @@ type createWalletResponse struct {
 	Address  string `json:"address"`
 }
 
+// importMnemonicRequest 从助记词导入钱包请求
+type importMnemonicRequest struct {
+	ChainType string `json:"chain_type" binding:"required"`
+	Mnemonic  string `json:"mnemonic" binding:"required"`
+}
+
+// importPrivateKeyRequest 从私钥导入钱包请求
+type importPrivateKeyRequest struct {
+	ChainType  string `json:"chain_type" binding:"required"`
+	PrivateKey string `json:"private_key" binding:"required"`
+}
+
 // importWalletRequest 导入钱包请求
 type importWalletRequest struct {
 	ChainType  string `json:"chain_type" binding:"required"`
@@ -58,6 +70,32 @@ type balanceResponse struct {
 	Currency string `json:"currency"`
 }
 
+// tokenBalanceResponse 代币余额响应
+type tokenBalanceResponse struct {
+	Address      string `json:"address"`
+	Balance      string `json:"balance"`
+	Currency     string `json:"currency"`
+	TokenAddress string `json:"token_address"`
+	TokenName    string `json:"token_name,omitempty"`
+	Decimals     int    `json:"decimals,omitempty"`
+}
+
+// createTransactionRequest 创建交易请求
+type createTransactionRequest struct {
+	From      string `json:"from" binding:"required"`
+	To        string `json:"to" binding:"required"`
+	Amount    string `json:"amount" binding:"required"`
+	Data      string `json:"data,omitempty"`
+	ChainType string `json:"chain_type" binding:"required"`
+}
+
+// signTransactionRequest 签名交易请求
+type signTransactionRequest struct {
+	WalletID  string `json:"wallet_id" binding:"required"`
+	Tx        string `json:"tx" binding:"required"` // JSON 字符串
+	ChainType string `json:"chain_type" binding:"required"`
+}
+
 // sendTransactionRequest 发送交易请求
 type sendTransactionRequest struct {
 	WalletID string `json:"wallet_id" binding:"required"`
@@ -76,32 +114,105 @@ type transactionStatusResponse struct {
 	Status string `json:"status"`
 }
 
-// CreateWallet 创建钱包
+// transactionHistoryResponse 交易历史响应
+type transactionHistoryResponse struct {
+	TxHash    string `json:"tx_hash"`
+	Status    string `json:"status"`
+	Timestamp int64  `json:"timestamp"`
+}
+
+// getChainSymbol 获取链的代币符号
+func getChainSymbol(chainType wallet.ChainType) string {
+	switch chainType {
+	case wallet.Ethereum:
+		return "ETH"
+	case wallet.BSC:
+		return "BNB"
+	case wallet.Polygon:
+		return "MATIC"
+	case wallet.SEPOLIA:
+		return "SEP"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// CreateWallet 创建新钱包
 func (h *WalletHandler) CreateWallet(c *gin.Context) {
 	var req createWalletRequest
-	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		api.BadRequest(c, "Invalid request format")
 		return
 	}
 
-	// 转换链类型
 	chainType := wallet.ChainType(req.ChainType)
-
-	// 创建钱包
 	walletID, err := h.walletService.CreateWallet(chainType)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		api.InternalServerError(c, err.Error())
 		return
 	}
 
-	// 获取钱包信息
 	walletInfo, err := h.walletService.GetWalletInfo(walletID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		api.InternalServerError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, createWalletResponse{
+	api.Success(c, createWalletResponse{
+		WalletID: walletID,
+		Address:  walletInfo.Address,
+	})
+}
+
+// ImportWalletFromMnemonic 从助记词导入钱包
+func (h *WalletHandler) ImportWalletFromMnemonic(c *gin.Context) {
+	var req importMnemonicRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		api.BadRequest(c, "Invalid request format")
+		return
+	}
+
+	chainType := wallet.ChainType(req.ChainType)
+	walletID, err := h.walletService.ImportWalletFromMnemonic(chainType, req.Mnemonic)
+	if err != nil {
+		api.InternalServerError(c, err.Error())
+		return
+	}
+
+	walletInfo, err := h.walletService.GetWalletInfo(walletID)
+	if err != nil {
+		api.InternalServerError(c, err.Error())
+		return
+	}
+
+	api.Success(c, createWalletResponse{
+		WalletID: walletID,
+		Address:  walletInfo.Address,
+	})
+}
+
+// ImportWalletFromPrivateKey 从私钥导入钱包
+func (h *WalletHandler) ImportWalletFromPrivateKey(c *gin.Context) {
+	var req importPrivateKeyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		api.BadRequest(c, "Invalid request format")
+		return
+	}
+
+	chainType := wallet.ChainType(req.ChainType)
+	walletID, err := h.walletService.ImportWalletFromPrivateKey(chainType, req.PrivateKey)
+	if err != nil {
+		api.InternalServerError(c, err.Error())
+		return
+	}
+
+	walletInfo, err := h.walletService.GetWalletInfo(walletID)
+	if err != nil {
+		api.InternalServerError(c, err.Error())
+		return
+	}
+
+	api.Success(c, createWalletResponse{
 		WalletID: walletID,
 		Address:  walletInfo.Address,
 	})
@@ -155,19 +266,13 @@ func (h *WalletHandler) ImportWallet(c *gin.Context) {
 // GetWalletInfo 获取钱包信息
 func (h *WalletHandler) GetWalletInfo(c *gin.Context) {
 	walletID := c.Param("id")
-	if walletID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Wallet ID is required"})
-		return
-	}
-
-	// 获取钱包信息
 	walletInfo, err := h.walletService.GetWalletInfo(walletID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		api.NotFound(c, "Wallet not found")
 		return
 	}
 
-	c.JSON(http.StatusOK, walletInfoResponse{
+	api.Success(c, walletInfoResponse{
 		ID:         walletInfo.ID,
 		Address:    walletInfo.Address,
 		ChainType:  string(walletInfo.ChainType),
@@ -193,63 +298,143 @@ func (h *WalletHandler) ListWallets(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetBalance 获取余额
+// GetBalance 获取钱包余额
 func (h *WalletHandler) GetBalance(c *gin.Context) {
 	address := c.Param("address")
-	if address == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Address is required"})
+	chainType := wallet.ChainType(c.Query("chainType"))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	balance, err := h.walletService.GetBalance(ctx, chainType, address)
+	if err != nil {
+		api.InternalServerError(c, err.Error())
 		return
 	}
 
-	chainTypeStr := c.Query("chain_type")
-	if chainTypeStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Chain type is required"})
+	api.Success(c, balanceResponse{
+		Balance:  balance.String(),
+		Currency: getChainSymbol(chainType),
+	})
+}
+
+// GetTokenBalance 获取代币余额
+func (h *WalletHandler) GetTokenBalance(c *gin.Context) {
+	address := c.Param("address")
+	tokenAddress := c.Param("tokenAddress")
+	chainType := wallet.ChainType(c.Query("chainType"))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	balance, err := h.walletService.GetTokenBalance(ctx, chainType, address, tokenAddress)
+	if err != nil {
+		api.InternalServerError(c, err.Error())
+		return
+	}
+
+	api.Success(c, tokenBalanceResponse{
+		Balance:  balance.String(),
+		Currency: "TOKEN", // 这里应该从代币合约中获取实际符号
+	})
+}
+
+// CreateTransaction 创建交易
+func (h *WalletHandler) CreateTransaction(c *gin.Context) {
+	var req createTransactionRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
 	// 转换链类型
-	chainType := wallet.ChainType(chainTypeStr)
+	chainType := wallet.ChainType(req.ChainType)
+
+	// 转换金额
+	amount, ok := new(big.Int).SetString(req.Amount, 10)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid amount format"})
+		return
+	}
 
 	// 创建上下文
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// 获取余额
-	balance, err := h.walletService.GetBalance(ctx, chainType, address)
+	// 获取对应链的钱包实现
+	walletImpl, ok := h.walletService.GetWalletByChainType(chainType)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported chain type"})
+		return
+	}
+
+	// 创建交易，wallet接口要求data参数为[]byte
+	var data []byte
+	if req.Data != "" {
+		data = []byte(req.Data)
+	}
+
+	// 创建交易
+	tx, err := walletImpl.CreateTransaction(ctx, req.From, req.To, amount, data)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 获取代币地址（可选）
-	tokenAddress := c.Query("token")
-	if tokenAddress != "" {
-		// 获取代币余额
-		tokenBalance, err := h.walletService.GetTokenBalance(ctx, chainType, address, tokenAddress)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		balance = tokenBalance
+	// 返回交易数据，转换为字符串便于JSON传输
+	c.JSON(http.StatusOK, gin.H{
+		"tx": string(tx),
+	})
+}
+
+// SignTransaction 签名交易
+func (h *WalletHandler) SignTransaction(c *gin.Context) {
+	var req signTransactionRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
 	}
 
-	// 获取代币符号
-	currency := "ETH"
-	switch chainType {
-	case wallet.Ethereum:
-		currency = "ETH"
-	case wallet.BSC:
-		currency = "BNB"
-	case wallet.Polygon:
-		currency = "MATIC"
-	case wallet.Solana:
-		currency = "SOL"
+	// 转换链类型
+	chainType := wallet.ChainType(req.ChainType)
+
+	// 创建上下文
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 获取钱包信息
+	walletInfo, err := h.walletService.GetWalletInfo(req.WalletID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusOK, balanceResponse{
-		Address:  address,
-		Balance:  balance.String(),
-		Currency: currency,
+	// 验证链类型
+	if walletInfo.ChainType != chainType {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chain type mismatch"})
+		return
+	}
+
+	// 获取对应链的钱包实现
+	walletImpl, ok := h.walletService.GetWalletByChainType(chainType)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported chain type"})
+		return
+	}
+
+	// 根据wallet接口定义，SignTransaction需要接收[]byte类型的tx
+	txBytes := []byte(req.Tx)
+
+	// 签名交易
+	signedTx, err := walletImpl.SignTransaction(ctx, req.WalletID, txBytes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 返回签名后的交易
+	c.JSON(http.StatusOK, gin.H{
+		"signed_tx": string(signedTx),
 	})
 }
 
@@ -261,30 +446,19 @@ func (h *WalletHandler) SendTransaction(c *gin.Context) {
 		return
 	}
 
-	// 解析金额
+	// 转换金额
 	amount, ok := new(big.Int).SetString(req.Amount, 10)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid amount format"})
 		return
 	}
 
-	// 解析数据
-	var data []byte
-	if req.Data != "" {
-		var err error
-		data, err = json.Marshal(req.Data)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data format"})
-			return
-		}
-	}
-
 	// 创建上下文
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	// 发送交易
-	txHash, err := h.walletService.SendTransaction(ctx, req.WalletID, req.To, amount, data)
+	txHash, err := h.walletService.SendTransaction(ctx, req.WalletID, req.To, amount, []byte(req.Data))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -325,5 +499,38 @@ func (h *WalletHandler) GetTransactionStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, transactionStatusResponse{
 		Status: status,
+	})
+}
+
+// GetTransactionHistory 获取交易历史
+func (h *WalletHandler) GetTransactionHistory(c *gin.Context) {
+	address := c.Query("address")
+	if address == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Address is required"})
+		return
+	}
+
+	chainTypeStr := c.Query("chain_type")
+	if chainTypeStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chain type is required"})
+		return
+	}
+
+	// 转换链类型
+	// chainType := wallet.ChainType(chainTypeStr)
+
+	// 创建上下文
+	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// defer cancel()
+
+	// 注意：这里需要实现一个获取交易历史的服务方法
+	// 当前只返回一个示例响应，实际实现时需要使用chainType和ctx调用服务方法
+	// 例如: txHistory, err := h.walletService.GetTransactionHistory(ctx, chainType, address)
+	c.JSON(http.StatusOK, []transactionHistoryResponse{
+		{
+			TxHash:    "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			Status:    "CONFIRMED",
+			Timestamp: time.Now().Unix(),
+		},
 	})
 }

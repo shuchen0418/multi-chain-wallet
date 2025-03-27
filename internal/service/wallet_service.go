@@ -65,6 +65,12 @@ func NewWalletService(encryptionKey string, ethereumRPC, bscRPC, polygonRPC, sep
 	return service, nil
 }
 
+// GetWalletByChainType 根据链类型获取钱包实现
+func (s *WalletService) GetWalletByChainType(chainType wallet.ChainType) (wallet.Wallet, bool) {
+	walletImpl, ok := s.wallets[chainType]
+	return walletImpl, ok
+}
+
 // CreateWallet 创建指定链类型的钱包
 func (s *WalletService) CreateWallet(chainType wallet.ChainType) (string, error) {
 	walletImpl, ok := s.wallets[chainType]
