@@ -283,7 +283,11 @@ func (h *WalletHandler) GetWalletInfo(c *gin.Context) {
 
 // ListWallets 获取钱包列表
 func (h *WalletHandler) ListWallets(c *gin.Context) {
-	wallets := h.walletService.ListWallets()
+	wallets, err := h.walletService.ListWallets()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	// 转换为响应格式
 	response := make([]walletInfoResponse, 0, len(wallets))
@@ -413,13 +417,6 @@ func (h *WalletHandler) CreateTransaction(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// 获取对应链的钱包实现
-	walletImpl, ok := h.walletService.GetWalletByChainType(chainType)
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported chain type"})
-		return
-	}
-
 	// 创建交易，wallet接口要求data参数为[]byte
 	var data []byte
 	if req.Data != "" {
@@ -427,7 +424,7 @@ func (h *WalletHandler) CreateTransaction(c *gin.Context) {
 	}
 
 	// 创建交易
-	tx, err := walletImpl.CreateTransaction(ctx, req.From, req.To, amount, data)
+	tx, err := h.walletService.CreateTransaction(ctx, chainType, req.From, req.To, amount, data)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -467,18 +464,11 @@ func (h *WalletHandler) SignTransaction(c *gin.Context) {
 		return
 	}
 
-	// 获取对应链的钱包实现
-	walletImpl, ok := h.walletService.GetWalletByChainType(chainType)
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported chain type"})
-		return
-	}
-
 	// 根据wallet接口定义，SignTransaction需要接收[]byte类型的tx
 	txBytes := []byte(req.Tx)
 
 	// 签名交易
-	signedTx, err := walletImpl.SignTransaction(ctx, req.WalletID, txBytes)
+	signedTx, err := h.walletService.SignTransaction(ctx, chainType, req.WalletID, txBytes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -498,6 +488,13 @@ func (h *WalletHandler) SendTransaction(c *gin.Context) {
 		return
 	}
 
+	// 获取钱包信息以获取链类型
+	walletInfo, err := h.walletService.GetWalletInfo(req.WalletID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
 	// 转换金额
 	amount, ok := new(big.Int).SetString(req.Amount, 10)
 	if !ok {
@@ -509,8 +506,22 @@ func (h *WalletHandler) SendTransaction(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
+	// 创建交易
+	tx, err := h.walletService.CreateTransaction(ctx, walletInfo.ChainType, req.WalletID, req.To, amount, []byte(req.Data))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 签名交易
+	signedTx, err := h.walletService.SignTransaction(ctx, walletInfo.ChainType, req.WalletID, tx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	// 发送交易
-	txHash, err := h.walletService.SendTransaction(ctx, req.WalletID, req.To, amount, []byte(req.Data))
+	txHash, err := h.walletService.SendTransaction(ctx, walletInfo.ChainType, signedTx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -9,6 +9,8 @@ import (
 	"multi-chain-wallet/api/routes"
 	"multi-chain-wallet/internal/config"
 	"multi-chain-wallet/internal/service"
+	"multi-chain-wallet/internal/storage"
+	"multi-chain-wallet/internal/wallet"
 )
 
 func main() {
@@ -19,17 +21,24 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// 初始化钱包服务
-	walletService, err := service.NewWalletService(
-		cfg.Wallet.EncryptionKey,
-		cfg.RPC.Ethereum,
-		cfg.RPC.BSC,
-		cfg.RPC.Polygon,
-		cfg.RPC.Sepolia,
+	// 初始化数据库
+	err = storage.InitDB(
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.DBName,
 	)
 	if err != nil {
-		log.Fatalf("Failed to initialize wallet service: %v", err)
+		log.Fatalf("Failed to initialize database: %v", err)
 	}
+
+	// 初始化钱包服务
+	walletManager := wallet.NewManager()
+	walletStorage := &storage.MySQLWalletStorage{}
+	txStorage := &storage.MySQLTransactionStorage{}
+
+	walletService := service.NewWalletService(walletManager, walletStorage, txStorage)
 
 	// 创建API处理器
 	walletHandler := handlers.NewWalletHandler(walletService)

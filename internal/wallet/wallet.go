@@ -54,10 +54,12 @@ type Wallet interface {
 
 // WalletInfo 钱包信息
 type WalletInfo struct {
-	ID         string    `json:"id"`
-	Address    string    `json:"address"`
-	ChainType  ChainType `json:"chain_type"`
-	CreateTime int64     `json:"create_time"`
+	ID          string    `json:"id"`
+	Address     string    `json:"address"`
+	PrivKeyEnc  string    `json:"priv_key_enc"`
+	MnemonicEnc string    `json:"mnemonic_enc,omitempty"`
+	ChainType   ChainType `json:"chain_type"`
+	CreateTime  int64     `json:"create_time"`
 }
 
 // TransactionStatus 交易状态
@@ -79,4 +81,17 @@ type TransactionInfo struct {
 	Status    TransactionStatus `json:"status"`
 	BlockNum  uint64            `json:"block_num,omitempty"`
 	Timestamp int64             `json:"timestamp"`
+}
+
+// Transaction 交易信息
+type Transaction struct {
+	ID         string            `json:"id"`
+	WalletID   string            `json:"wallet_id"`
+	TxHash     string            `json:"tx_hash"`
+	From       string            `json:"from"`
+	To         string            `json:"to"`
+	Amount     string            `json:"amount"`
+	Status     TransactionStatus `json:"status"`
+	ChainType  ChainType         `json:"chain_type"`
+	CreateTime int64             `json:"create_time"`
 }

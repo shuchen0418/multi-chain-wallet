@@ -14,6 +14,8 @@ import (
 	"multi-chain-wallet/api/routes"
 	"multi-chain-wallet/internal/config"
 	"multi-chain-wallet/internal/service"
+	"multi-chain-wallet/internal/storage"
+	"multi-chain-wallet/internal/wallet"
 )
 
 func demoCreateWallet() {
@@ -58,7 +60,7 @@ func main() {
 		log.Printf("加载配置失败，使用默认配置: %v", err)
 		// 使用默认配置继续
 		cfg = &config.Config{}
-		cfg.Server.Port = 8080
+		cfg.Server.Port = "8080"
 		cfg.Wallet.EncryptionKey = "default-encryption-key-replace-in-production"
 		// 使用公共测试网
 		cfg.RPC.Ethereum = "https://sepolia.infura.io/v3/YOUR_INFURA_KEY"
@@ -72,34 +74,21 @@ func main() {
 		if arg == "-port" && i+1 < len(os.Args) {
 			fmt.Sscanf(os.Args[i+1], "%d", &port)
 			if port > 0 {
-				cfg.Server.Port = port
+				cfg.Server.Port = fmt.Sprintf("%d", port)
 			}
 		}
 	}
 
 	log.Printf("多链钱包服务 v0.1")
 	log.Printf("支持链: Ethereum, BSC, Polygon")
-	log.Printf("服务端口: %d", cfg.Server.Port)
+	log.Printf("服务端口: %s", cfg.Server.Port)
 
 	// 尝试初始化钱包服务
-	var walletService *service.WalletService
-	walletService, err = service.NewWalletService(
-		cfg.Wallet.EncryptionKey,
-		cfg.RPC.Ethereum,
-		cfg.RPC.BSC,
-		cfg.RPC.Polygon,
-		cfg.RPC.Sepolia,
-	)
+	walletManager := wallet.NewManager()
+	walletStorage := &storage.MySQLWalletStorage{}
+	txStorage := &storage.MySQLTransactionStorage{}
 
-	if err != nil {
-		log.Printf("警告: 无法初始化完整钱包服务，将提供有限功能: %v", err)
-		log.Printf("您可能需要在config.json中配置正确的RPC节点")
-
-		// 如果初始化失败，继续使用有限功能
-		if walletService == nil {
-			log.Fatalf("无法启动钱包服务, 请检查配置")
-		}
-	}
+	walletService := service.NewWalletService(walletManager, walletStorage, txStorage)
 
 	// 创建API处理器
 	walletHandler := handlers.NewWalletHandler(walletService)
@@ -108,7 +97,7 @@ func main() {
 	router := routes.SetupRouter(walletHandler)
 
 	// 启动服务器
-	serverAddr := fmt.Sprintf(":%d", cfg.Server.Port)
+	serverAddr := fmt.Sprintf(":%s", cfg.Server.Port)
 	log.Printf("正在启动服务器 %s", serverAddr)
 	if err := router.Run(serverAddr); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)

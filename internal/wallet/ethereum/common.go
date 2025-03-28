@@ -16,7 +16,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+	"github.com/tyler-smith/go-bip39"
+
+	"multi-chain-wallet/internal/wallet"
+
 	"github.com/ethereum/go-ethereum"
+	eth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -24,13 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/google/uuid"
-	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
-	"github.com/tyler-smith/go-bip39"
-
-	"multi-chain-wallet/internal/wallet"
-
-	eth "github.com/ethereum/go-ethereum"
 )
 
 // 定义密钥保存结构
