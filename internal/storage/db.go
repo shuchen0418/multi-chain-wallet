@@ -53,6 +53,14 @@ type TransactionStorage interface {
 	GetWalletTransactions(walletID string) ([]*Transaction, error)
 	// 更新交易状态
 	UpdateTransactionStatus(id string, status string) error
+	// 保存跨链交易
+	SaveBridgeTransaction(tx *BridgeTransaction) error
+	// 获取跨链交易
+	GetBridgeTransaction(txHash string) (*BridgeTransaction, error)
+	// 更新跨链交易状态
+	UpdateBridgeTransactionStatus(txHash string, status string) error
+	// 获取地址相关的跨链交易
+	GetBridgeTransactionsByAddress(address string) ([]*BridgeTransaction, error)
 }
 
 // MySQLWalletStorage MySQL钱包存储实现

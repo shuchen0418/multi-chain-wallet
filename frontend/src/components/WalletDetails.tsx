@@ -26,7 +26,7 @@ import { CopyIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 // 获取链的区块浏览器URL
 const getExplorerUrl = (chainType: ChainType, address: string): string => {
   switch (chainType) {
-    case ChainType.Ethereum:
+    case ChainType.ETH:
       return `https://goerli.etherscan.io/address/${address}`;
     case ChainType.BSC:
       return `https://testnet.bscscan.com/address/${address}`;
@@ -42,7 +42,7 @@ const getExplorerUrl = (chainType: ChainType, address: string): string => {
 // 获取链类型的显示名称
 const getChainName = (chainType: ChainType): string => {
   switch (chainType) {
-    case ChainType.Ethereum:
+    case ChainType.ETH:
       return 'Ethereum';
     case ChainType.BSC:
       return 'BSC';
@@ -58,7 +58,7 @@ const getChainName = (chainType: ChainType): string => {
 // 获取链类型的颜色
 const getChainColor = (chainType: ChainType): string => {
   switch (chainType) {
-    case ChainType.Ethereum:
+    case ChainType.ETH:
       return 'blue';
     case ChainType.BSC:
       return 'yellow';
@@ -92,21 +92,11 @@ const WalletDetails: React.FC<WalletDetailsProps> = ({ wallet }) => {
     setLoading(true);
     try {
       const response = await walletApi.getBalance(wallet.address, wallet.chainType);
-      if (response.code === 0) {
-        setBalance(response.data);
-      } else {
-        toast({
-          title: '获取余额失败',
-          description: response.message,
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-      }
+      setBalance(response);
     } catch (error) {
       toast({
         title: '获取余额失败',
-        description: error instanceof Error ? error.message : '未知错误',
+        description: error instanceof Error ? error.message : '获取余额失败',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -123,21 +113,11 @@ const WalletDetails: React.FC<WalletDetailsProps> = ({ wallet }) => {
     setTokenLoading(true);
     try {
       const response = await walletApi.getTokenBalance(wallet.address, tokenAddress, wallet.chainType);
-      if (response.code === 0) {
-        setTokenBalance(`${response.data.balance} ${response.data.symbol}`);
-      } else {
-        toast({
-          title: '获取代币余额失败',
-          description: response.message,
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-      }
+      setTokenBalance(`${response.balance} ${response.symbol}`);
     } catch (error) {
       toast({
         title: '获取代币余额失败',
-        description: error instanceof Error ? error.message : '未知错误',
+        description: error instanceof Error ? error.message : '获取余额失败',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -207,7 +187,7 @@ const WalletDetails: React.FC<WalletDetailsProps> = ({ wallet }) => {
 
         <Box>
           <Text fontWeight="bold" mb={1}>创建时间</Text>
-          <Text>{new Date(wallet.createTime * 1000).toLocaleString()}</Text>
+          <Text>{new Date(wallet.createdAt).toLocaleString()}</Text>
         </Box>
 
         <Divider />

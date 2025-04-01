@@ -5,7 +5,7 @@ import { Wallet, ChainType } from '../types';
 // 获取链类型的显示名称
 const getChainName = (chainType: ChainType): string => {
   switch (chainType) {
-    case ChainType.Ethereum:
+     case ChainType.ETH:
       return 'Ethereum';
     case ChainType.BSC:
       return 'BSC';
@@ -19,7 +19,7 @@ const getChainName = (chainType: ChainType): string => {
 // 获取链类型的颜色
 const getChainColor = (chainType: ChainType): string => {
   switch (chainType) {
-    case ChainType.Ethereum:
+     case ChainType.ETH:
       return 'blue';
     case ChainType.BSC:
       return 'yellow';
@@ -48,7 +48,7 @@ const WalletCard: React.FC<WalletCardProps> = ({
   const borderColor = isSelected ? 'blue.500' : nonSelectedBorderColor;
   
   // 获取创建时间的格式化显示
-  const formattedDate = new Date(wallet.createTime * 1000).toLocaleDateString();
+  const formattedDate = new Date(wallet.createdAt).toLocaleDateString();
 
   // 地址显示格式化（只显示前6位和后4位）
   const formatAddress = (address: string): string => {

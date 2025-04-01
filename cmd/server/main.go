@@ -40,11 +40,15 @@ func main() {
 
 	walletService := service.NewWalletService(walletManager, walletStorage, txStorage)
 
+	// 初始化跨链服务
+	bridgeService := service.NewBridgeService(walletService, txStorage)
+
 	// 创建API处理器
 	walletHandler := handlers.NewWalletHandler(walletService)
+	bridgeHandler := handlers.NewBridgeHandler(bridgeService)
 
 	// 设置路由
-	router := routes.SetupRouter(walletHandler)
+	router := routes.SetupRouter(walletHandler, bridgeHandler)
 
 	// 启动服务器
 	serverAddr := fmt.Sprintf(":%d", cfg.Server.Port)

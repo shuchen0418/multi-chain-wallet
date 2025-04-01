@@ -35,15 +35,11 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await walletApi.getWallets();
-      if (response.code === 0) {
-        setWallets(response.data);
-        // 如果有钱包并且没有当前选中的钱包，则选择第一个
-        if (response.data.length > 0 && !currentWallet) {
-          setCurrentWallet(response.data[0]);
-        }
-      } else {
-        setError(response.message);
+      const response = await walletApi.getWalletList();
+      setWallets(response);
+      // 如果有钱包并且没有当前选中的钱包，则选择第一个
+      if (response.length > 0 && !currentWallet) {
+        setCurrentWallet(response[0]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch wallets');
@@ -57,14 +53,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await walletApi.createWallet({ chainType });
-      if (response.code === 0) {
-        await refreshWallets(); // 刷新钱包列表
-        return response.data;
-      } else {
-        setError(response.message);
-        throw new Error(response.message);
-      }
+      const response = await walletApi.createWallet(chainType);
+      await refreshWallets(); // 刷新钱包列表
+      return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create wallet';
       setError(errorMessage);
@@ -79,14 +70,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await walletApi.importFromMnemonic({ mnemonic, chainType });
-      if (response.code === 0) {
-        await refreshWallets(); // 刷新钱包列表
-        return response.data;
-      } else {
-        setError(response.message);
-        throw new Error(response.message);
-      }
+      const response = await walletApi.importWalletFromMnemonic(chainType, mnemonic);
+      await refreshWallets(); // 刷新钱包列表
+      return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to import wallet';
       setError(errorMessage);
@@ -101,14 +87,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await walletApi.importFromPrivateKey({ privateKey, chainType });
-      if (response.code === 0) {
-        await refreshWallets(); // 刷新钱包列表
-        return response.data;
-      } else {
-        setError(response.message);
-        throw new Error(response.message);
-      }
+      const response = await walletApi.importWalletFromPrivateKey(chainType, privateKey);
+      await refreshWallets(); // 刷新钱包列表
+      return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to import wallet';
       setError(errorMessage);

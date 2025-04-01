@@ -1,9 +1,16 @@
 // 链类型
 export enum ChainType {
-  Ethereum = 'ETHEREUM',
-  BSC = 'BSC',
-  Polygon = 'POLYGON',
-  Sepolia = 'SEPOLIA'
+  ETH = 'ethereum',
+  BSC = 'bsc',
+  Polygon = 'polygon',
+  Sepolia = 'sepolia'
+}
+
+// API响应类型
+export interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
 }
 
 // 交易状态
@@ -18,7 +25,10 @@ export interface Wallet {
   id: string;
   address: string;
   chainType: ChainType;
-  createTime: number;
+  balance: string;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // 余额信息
@@ -38,11 +48,16 @@ export interface TokenBalance extends Balance {
 
 // 交易信息
 export interface Transaction {
+  id: string;
   from: string;
   to: string;
-  value: string; // 十进制字符串
-  data?: string;
+  amount: string;
+  currency: string;
+  status: string;
+  txHash: string;
   chainType: ChainType;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // 已签名交易
@@ -56,46 +71,45 @@ export interface SignedTransaction {
 
 // 创建钱包请求
 export interface CreateWalletRequest {
-  chainType: ChainType;
+  chain_type: ChainType;
 }
 
 // 导入钱包请求 - 助记词
-export interface ImportMnemonicRequest {
-  mnemonic: string;
-  chainType: ChainType;
+export interface ImportWalletRequest {
+  chain_type: ChainType;
+  mnemonic?: string;
+  private_key?: string;
 }
 
-// 导入钱包请求 - 私钥
-export interface ImportPrivateKeyRequest {
-  privateKey: string;
-  chainType: ChainType;
+// 获取余额请求
+export interface GetBalanceRequest {
+  chain_type: ChainType;
+}
+
+// 获取代币余额请求
+export interface GetTokenBalanceRequest {
+  chain_type: ChainType;
 }
 
 // 创建交易请求
 export interface CreateTransactionRequest {
   from: string;
   to: string;
-  amount: string; // 十进制字符串
+  amount: string;
+  chain_type: ChainType;
   data?: string;
-  chainType: ChainType;
 }
 
 // 签名交易请求
 export interface SignTransactionRequest {
-  walletId: string;
-  tx: string; // JSON 字符串
-  chainType: ChainType;
+  wallet_id: string;
+  tx: string;
+  chain_type: ChainType;
 }
 
 // 发送交易请求
 export interface SendTransactionRequest {
-  signedTx: string; // JSON 字符串
-  chainType: ChainType;
-}
-
-// API响应
-export interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
+  wallet_id: string;
+  signed_tx: string;
+  chain_type: ChainType;
 } 

@@ -50,44 +50,33 @@ const SendTransaction: React.FC<SendTransactionProps> = ({ wallet }) => {
     setTransactionLoading(true);
     try {
       // 1. 创建交易
-      const createTxResponse = await walletApi.createTransaction({
-        from: wallet.address,
+      const tx = await walletApi.createTransaction(
+        wallet.address,
         to,
         amount,
-        data: data || undefined,
-        chainType: wallet.chainType
-      });
-
-      if (createTxResponse.code !== 0) {
-        throw new Error(createTxResponse.message);
-      }
+        wallet.chainType,
+        data
+      );
 
       // 2. 签名交易
-      const signTxResponse = await walletApi.signTransaction({
-        walletId: wallet.id,
-        tx: createTxResponse.data,
-        chainType: wallet.chainType
-      });
-
-      if (signTxResponse.code !== 0) {
-        throw new Error(signTxResponse.message);
-      }
+      const signedTx = await walletApi.signTransaction(
+        wallet.id,
+        tx,
+        wallet.chainType
+      );
 
       // 3. 发送交易
-      const sendTxResponse = await walletApi.sendTransaction({
-        signedTx: signTxResponse.data,
-        chainType: wallet.chainType
-      });
-
-      if (sendTxResponse.code !== 0) {
-        throw new Error(sendTxResponse.message);
-      }
+      const txHash = await walletApi.sendTransaction(
+        wallet.id,
+        signedTx,
+        wallet.chainType
+      );
 
       // 保存交易哈希
-      setTxHash(sendTxResponse.data);
+      setTxHash(txHash);
       toast({
         title: '交易发送成功',
-        description: `交易哈希: ${sendTxResponse.data}`,
+        description: `交易哈希: ${txHash}`,
         status: 'success',
         duration: 5000,
         isClosable: true,

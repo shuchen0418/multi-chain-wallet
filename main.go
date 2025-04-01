@@ -94,7 +94,7 @@ func main() {
 	walletHandler := handlers.NewWalletHandler(walletService)
 
 	// 设置路由
-	router := routes.SetupRouter(walletHandler)
+	router := routes.SetupRouter(walletHandler, nil)
 
 	// 启动服务器
 	serverAddr := fmt.Sprintf(":%s", cfg.Server.Port)

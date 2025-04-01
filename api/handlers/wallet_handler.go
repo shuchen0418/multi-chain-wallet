@@ -122,20 +122,20 @@ type transactionHistoryResponse struct {
 // getChainSymbol 获取链的代币符号
 func getChainSymbol(chainType wallet.ChainType) string {
 	switch chainType {
-	case wallet.Ethereum:
+	case wallet.ChainTypeETH:
 		return "ETH"
-	case wallet.BSC:
+	case wallet.ChainTypeBSC:
 		return "BNB"
-	case wallet.Polygon:
+	case wallet.ChainTypePolygon:
 		return "MATIC"
-	case wallet.SEPOLIA:
+	case wallet.ChainTypeSepolia:
 		return "SEP"
 	default:
 		return "UNKNOWN"
 	}
 }
 
-// CreateWallet 创建新钱包
+// CreateWallet 创建钱包
 func (h *WalletHandler) CreateWallet(c *gin.Context) {
 	var req createWalletRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -143,13 +143,21 @@ func (h *WalletHandler) CreateWallet(c *gin.Context) {
 		return
 	}
 
+	// 转换链类型
 	chainType := wallet.ChainType(req.ChainType)
+	if !isValidChainType(chainType) {
+		api.BadRequest(c, "Unsupported chain type")
+		return
+	}
+
+	// 创建钱包
 	walletID, err := h.walletService.CreateWallet(chainType)
 	if err != nil {
 		api.InternalServerError(c, err.Error())
 		return
 	}
 
+	// 获取钱包信息
 	walletInfo, err := h.walletService.GetWalletInfo(walletID)
 	if err != nil {
 		api.InternalServerError(c, err.Error())
@@ -160,6 +168,16 @@ func (h *WalletHandler) CreateWallet(c *gin.Context) {
 		WalletID: walletID,
 		Address:  walletInfo.Address,
 	})
+}
+
+// isValidChainType 检查链类型是否有效
+func isValidChainType(chainType wallet.ChainType) bool {
+	switch chainType {
+	case wallet.ChainTypeETH, wallet.ChainTypeBSC, wallet.ChainTypePolygon, wallet.ChainTypeSepolia:
+		return true
+	default:
+		return false
+	}
 }
 
 // ImportWalletFromMnemonic 从助记词导入钱包
@@ -505,20 +523,6 @@ func (h *WalletHandler) GetTransactionHistory(c *gin.Context) {
 		api.BadRequest(c, "Invalid request format")
 		return
 	}
-
-	/* // 转换链类型
-	chainType := wallet.ChainType(req.ChainType) */
-
-	/* // 创建上下文
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// 获取对应链的钱包实现
-	walletImpl, ok := h.walletService.GetWalletByChainType(chainType)
-	if !ok {
-		api.BadRequest(c, "Unsupported chain type")
-		return
-	} */
 
 	// 获取交易历史
 	history, err := h.walletService.GetTransactionHistory(req.WalletID)

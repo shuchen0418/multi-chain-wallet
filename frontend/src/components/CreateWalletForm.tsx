@@ -14,7 +14,7 @@ import { useWallet } from '../context/WalletContext';
 
 const CreateWalletForm: React.FC = () => {
   const { createWallet, loading } = useWallet();
-  const [chainType, setChainType] = useState<ChainType>(ChainType.Ethereum);
+  const [chainType, setChainType] = useState<ChainType>(ChainType.ETH);
   const toast = useToast();
 
   // 处理表单提交
@@ -51,7 +51,7 @@ const CreateWalletForm: React.FC = () => {
             value={chainType}
             onChange={(e) => setChainType(e.target.value as ChainType)}
           >
-            <option value={ChainType.Ethereum}>以太坊 (Ethereum)</option>
+            <option value={ChainType.ETH}>以太坊 (Ethereum)</option>
             <option value={ChainType.BSC}>币安智能链 (BSC)</option>
             <option value={ChainType.Polygon}>Polygon</option>
             <option value={ChainType.Sepolia}>Sepolia 测试网</option>

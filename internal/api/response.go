@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Response 统一响应结构
+// Response 统一API响应格式
 type Response struct {
 	Code    int         `json:"code"`    // 状态码
 	Message string      `json:"message"` // 响应消息
@@ -22,36 +22,47 @@ func Success(c *gin.Context, data interface{}) {
 	})
 }
 
-// Error 错误响应
-func Error(c *gin.Context, code int, message string) {
-	c.JSON(http.StatusOK, Response{
-		Code:    code,
+// BadRequest 请求参数错误响应
+func BadRequest(c *gin.Context, message string) {
+	c.JSON(http.StatusBadRequest, Response{
+		Code:    400,
 		Message: message,
 		Data:    nil,
 	})
 }
 
-// BadRequest 请求参数错误响应
-func BadRequest(c *gin.Context, message string) {
-	Error(c, 400, message)
-}
-
 // Unauthorized 未授权响应
 func Unauthorized(c *gin.Context, message string) {
-	Error(c, 401, message)
+	c.JSON(http.StatusUnauthorized, Response{
+		Code:    401,
+		Message: message,
+		Data:    nil,
+	})
 }
 
 // Forbidden 禁止访问响应
 func Forbidden(c *gin.Context, message string) {
-	Error(c, 403, message)
+	c.JSON(http.StatusForbidden, Response{
+		Code:    403,
+		Message: message,
+		Data:    nil,
+	})
 }
 
 // NotFound 资源不存在响应
 func NotFound(c *gin.Context, message string) {
-	Error(c, 404, message)
+	c.JSON(http.StatusNotFound, Response{
+		Code:    404,
+		Message: message,
+		Data:    nil,
+	})
 }
 
 // InternalServerError 服务器内部错误响应
 func InternalServerError(c *gin.Context, message string) {
-	Error(c, 500, message)
+	c.JSON(http.StatusInternalServerError, Response{
+		Code:    500,
+		Message: message,
+		Data:    nil,
+	})
 }

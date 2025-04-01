@@ -8,7 +8,7 @@ import (
 )
 
 // SetupRouter 设置API路由
-func SetupRouter(walletHandler *handlers.WalletHandler) *gin.Engine {
+func SetupRouter(walletHandler *handlers.WalletHandler, bridgeHandler *handlers.BridgeHandler) *gin.Engine {
 	r := gin.Default()
 
 	// 添加中间件
@@ -27,23 +27,22 @@ func SetupRouter(walletHandler *handlers.WalletHandler) *gin.Engine {
 			wallets.GET("/:id", walletHandler.GetWalletInfo)                              // 获取钱包信息
 			wallets.POST("/import/mnemonic", walletHandler.ImportWalletFromMnemonic)      // 从助记词导入钱包
 			wallets.POST("/import/private-key", walletHandler.ImportWalletFromPrivateKey) // 从私钥导入钱包
+			wallets.POST("/import", walletHandler.ImportWallet)
+			wallets.GET("/balance/:address", walletHandler.GetBalance)
+			wallets.GET("/token-balance/:address/:tokenAddress", walletHandler.GetTokenBalance)
+			wallets.POST("/transaction/create", walletHandler.CreateTransaction)
+			wallets.POST("/transaction/sign", walletHandler.SignTransaction)
+			wallets.POST("/transaction/send", walletHandler.SendTransaction)
+			wallets.GET("/transaction/status", walletHandler.GetTransactionStatus)
+			wallets.GET("/transaction/history", walletHandler.GetTransactionHistory)
 		}
 
-		// 余额查询
-		balances := v1.Group("/balances")
+		// 跨链相关
+		bridge := v1.Group("/bridge")
 		{
-			balances.GET("/:address", walletHandler.GetBalance)                          // 获取原生代币余额
-			balances.GET("/:address/token/:tokenAddress", walletHandler.GetTokenBalance) // 获取代币余额
-		}
-
-		// 交易相关
-		transactions := v1.Group("/transactions")
-		{
-			transactions.POST("/create", walletHandler.CreateTransaction)         // 创建交易
-			transactions.POST("/sign", walletHandler.SignTransaction)             // 签名交易
-			transactions.POST("/send", walletHandler.SendTransaction)             // 发送交易
-			transactions.GET("/:hash/status", walletHandler.GetTransactionStatus) // 获取交易状态
-			transactions.GET("", walletHandler.GetTransactionHistory)             // 获取交易历史
+			bridge.POST("/transfer", bridgeHandler.CrossChainTransfer)
+			bridge.GET("/transaction/:hash/status", bridgeHandler.GetBridgeTransactionStatus)
+			bridge.GET("/transaction/history", bridgeHandler.GetBridgeTransactionHistory)
 		}
 	}
 
