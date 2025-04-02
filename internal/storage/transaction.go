@@ -2,21 +2,23 @@ package storage
 
 import (
 	"fmt"
+	"time"
 )
 
 // BridgeTransaction 跨链交易记录
 type BridgeTransaction struct {
-	ID              string
-	SourceTxHash    string
-	FromChainType   string
-	ToChainType     string
-	FromAddress     string
-	ToAddress       string
-	Amount          string
-	TokenAddress    string
-	IsTokenTransfer bool
-	Status          string
-	CreateTime      int64
+	ID              string    `gorm:"primaryKey"`
+	SourceTxHash    string    `gorm:"index;type:varchar(100)"` // 指定类型和长度
+	FromChainType   string    // 来源链类型
+	ToChainType     string    // 目标链类型
+	FromAddress     string    `gorm:"index;type:varchar(100)"` // 指定类型和长度
+	ToAddress       string    `gorm:"index;type:varchar(100)"` // 指定类型和长度
+	Amount          string    // 交易金额
+	TokenAddress    string    `gorm:"type:varchar(100)"` // 指定类型和长度
+	IsTokenTransfer bool      // 是否代币转账
+	Status          string    // 交易状态
+	CreateTime      int64     // 创建时间
+	UpdatedAt       time.Time // 更新时间
 }
 
 // SaveBridgeTransaction 保存跨链交易记录

@@ -9,11 +9,11 @@ import (
 type ChainType string
 
 const (
-	Ethereum ChainType = "ethereum"
-	BSC      ChainType = "bsc"
-	Polygon  ChainType = "polygon"
-	Solana   ChainType = "solana"
-	SEPOLIA  ChainType = "sepolia"
+	// 前端发送的值为 "ethereum"，确保这里匹配
+	ChainTypeETH     ChainType = "ethereum"
+	ChainTypeBSC     ChainType = "bsc"
+	ChainTypePolygon ChainType = "polygon"
+	ChainTypeSepolia ChainType = "sepolia"
 )
 
 // Wallet 接口定义了所有链的钱包通用功能
@@ -56,10 +56,10 @@ type Wallet interface {
 type WalletInfo struct {
 	ID          string    `json:"id"`
 	Address     string    `json:"address"`
-	PrivKeyEnc  string    `json:"priv_key_enc"`
-	MnemonicEnc string    `json:"mnemonic_enc,omitempty"`
-	ChainType   ChainType `json:"chain_type"`
-	CreateTime  int64     `json:"create_time"`
+	PrivKeyEnc  string    `json:"privKeyEnc"`
+	MnemonicEnc string    `json:"mnemonicEnc,omitempty"`
+	ChainType   ChainType `json:"chainType"`
+	CreateTime  int64     `json:"createTime"`
 }
 
 // TransactionStatus 交易状态
@@ -83,15 +83,17 @@ type TransactionInfo struct {
 	Timestamp int64             `json:"timestamp"`
 }
 
-// Transaction 交易信息
+// Transaction 交易记录
 type Transaction struct {
 	ID         string            `json:"id"`
-	WalletID   string            `json:"wallet_id"`
-	TxHash     string            `json:"tx_hash"`
+	WalletID   string            `json:"walletId"`
+	TxHash     string            `json:"txHash"`
 	From       string            `json:"from"`
 	To         string            `json:"to"`
 	Amount     string            `json:"amount"`
+	Data       []byte            `json:"data,omitempty"`
 	Status     TransactionStatus `json:"status"`
-	ChainType  ChainType         `json:"chain_type"`
-	CreateTime int64             `json:"create_time"`
+	BlockNum   uint64            `json:"blockNum,omitempty"`
+	ChainType  ChainType         `json:"chainType"`
+	CreateTime int64             `json:"createTime"`
 }

@@ -16,7 +16,7 @@ func NewETHWallet(rpcURL string, encryptionKey string) (*ETHWallet, error) {
 	// 以太坊主网ChainID为1
 	chainID := big.NewInt(1)
 
-	base, err := NewBaseETHWallet(wallet.Ethereum, rpcURL, chainID, encryptionKey)
+	base, err := NewBaseETHWallet(wallet.ChainTypeETH, rpcURL, chainID, encryptionKey)
 	if err != nil {
 		return nil, err
 	}

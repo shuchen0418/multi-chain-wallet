@@ -20,15 +20,51 @@ interface WalletApiResponse<T> {
   data: T;
 }
 
+// 创建钱包响应
+interface CreateWalletResponse {
+  wallet_id: string;
+  address: string;
+}
+
+// 交易响应
+interface TxResponse {
+  tx: string;
+}
+
+// 签名交易响应
+interface SignedTxResponse {
+  signed_tx: string;
+}
+
+// 发送交易响应
+interface TxHashResponse {
+  tx_hash: string;
+}
+
+// 交易状态响应
+interface TxStatusResponse {
+  status: string;
+}
+
+// 交易历史响应
+interface TxHistoryResponse {
+  history: Transaction[];
+}
+
 // 创建axios实例
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1',
   timeout: 10000,
 });
 
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
+    if (response.data && response.data.code === undefined) {
+      // 直接返回数据，可能是其他格式或直接返回数组/对象
+      return response.data;
+    }
+    
     const res = response.data as WalletApiResponse<any>;
     if (res.code !== 0) {
       return Promise.reject(new Error(res.message));
@@ -43,10 +79,12 @@ api.interceptors.response.use(
 // 创建钱包
 export const createWallet = async (chainType: ChainType): Promise<string> => {
   try {
-    const response = await api.post<WalletApiResponse<{ wallet_id: string; address: string }>>('/wallets', {
-      chain_type: chainType,
+    console.log("createWallet", chainType)
+    const response = await api.post<any, CreateWalletResponse>('/wallets/create', {
+      chainType: chainType.toString(),
     });
-    return response.data.data.wallet_id;
+    console.log("Create wallet response:", response);
+    return response.wallet_id;
   } catch (error) {
     console.error('Failed to create wallet:', error);
     throw error;
@@ -56,11 +94,11 @@ export const createWallet = async (chainType: ChainType): Promise<string> => {
 // 导入钱包（从助记词）
 export const importWalletFromMnemonic = async (chainType: ChainType, mnemonic: string): Promise<string> => {
   try {
-    const response = await api.post<WalletApiResponse<{ wallet_id: string; address: string }>>('/api/wallets/import/mnemonic', {
-      chain_type: chainType,
+    const response = await api.post<any, CreateWalletResponse>('/wallets/import/mnemonic', {
+      chainType: chainType.toString(),
       mnemonic,
     });
-    return response.data.data.wallet_id;
+    return response.wallet_id;
   } catch (error) {
     console.error('Failed to import wallet from mnemonic:', error);
     throw error;
@@ -70,11 +108,11 @@ export const importWalletFromMnemonic = async (chainType: ChainType, mnemonic: s
 // 导入钱包（从私钥）
 export const importWalletFromPrivateKey = async (chainType: ChainType, privateKey: string): Promise<string> => {
   try {
-    const response = await api.post<WalletApiResponse<{ wallet_id: string; address: string }>>('/api/wallets/import/private-key', {
-      chain_type: chainType,
+    const response = await api.post<any, CreateWalletResponse>('/wallets/import/private-key', {
+      chainType: chainType.toString(),
       private_key: privateKey,
     });
-    return response.data.data.wallet_id;
+    return response.wallet_id;
   } catch (error) {
     console.error('Failed to import wallet from private key:', error);
     throw error;
@@ -84,8 +122,8 @@ export const importWalletFromPrivateKey = async (chainType: ChainType, privateKe
 // 获取钱包信息
 export const getWalletInfo = async (walletId: string): Promise<Wallet> => {
   try {
-    const response = await api.get<WalletApiResponse<Wallet>>(`/wallets/${walletId}`);
-    return response.data.data;
+    const response = await api.get<any, Wallet>(`/wallets/${walletId}`);
+    return response;
   } catch (error) {
     console.error('Failed to get wallet info:', error);
     throw error;
@@ -95,8 +133,10 @@ export const getWalletInfo = async (walletId: string): Promise<Wallet> => {
 // 获取钱包列表
 export const getWalletList = async (): Promise<Wallet[]> => {
   try {
-    const response = await api.get<WalletApiResponse<Wallet[]>>('/wallets');
-    return response.data.data;
+    console.log("Fetching wallet list...");
+    const response = await api.get<any, Wallet[]>('/wallets/list');
+    console.log("Wallet list response:", response);
+    return response || [];
   } catch (error) {
     console.error('Failed to get wallet list:', error);
     throw error;
@@ -106,10 +146,17 @@ export const getWalletList = async (): Promise<Wallet[]> => {
 // 获取余额
 export const getBalance = async (address: string, chainType: ChainType): Promise<Balance> => {
   try {
-    const response = await api.get<WalletApiResponse<Balance>>(`/api/wallets/${address}/balance`, {
-      params: { chain_type: chainType },
+    console.log("Getting balance for address:", address, "chainType:", chainType);
+    // 安全检查：如果chainType是undefined或null，使用默认值
+    const chainTypeParam = chainType ? chainType.toString() : 'ethereum';
+    
+    const response = await api.get<any, Balance>(`/wallets/balance/${address}`, {
+      params: {
+        chainType: chainTypeParam,
+      },
     });
-    return response.data.data;
+    console.log("Balance response:", response);
+    return response;
   } catch (error) {
     console.error('Failed to get balance:', error);
     throw error;
@@ -119,13 +166,17 @@ export const getBalance = async (address: string, chainType: ChainType): Promise
 // 获取代币余额
 export const getTokenBalance = async (address: string, tokenAddress: string, chainType: ChainType): Promise<TokenBalance> => {
   try {
-    const response = await api.get<WalletApiResponse<TokenBalance>>(
-      `/api/wallets/${address}/tokens/${tokenAddress}/balance`,
-      {
-        params: { chain_type: chainType },
-      }
-    );
-    return response.data.data;
+    console.log("Getting token balance for address:", address, "token:", tokenAddress, "chainType:", chainType);
+    // 安全检查：如果chainType是undefined或null，使用默认值
+    const chainTypeParam = chainType ? chainType.toString() : 'ethereum';
+    
+    const response = await api.get<any, TokenBalance>(`/wallets/token/${address}/${tokenAddress}`, {
+      params: {
+        chainType: chainTypeParam,
+      },
+    });
+    console.log("Token balance response:", response);
+    return response;
   } catch (error) {
     console.error('Failed to get token balance:', error);
     throw error;
@@ -141,14 +192,14 @@ export const createTransaction = async (
   data?: string
 ): Promise<string> => {
   try {
-    const response = await api.post<WalletApiResponse<{ tx: string }>>('/api/transactions/create', {
+    const response = await api.post<any, TxResponse>('/wallets/tx/create', {
       from,
       to,
       amount,
-      chain_type: chainType,
+      chainType: chainType.toString(),
       data,
     });
-    return response.data.data.tx;
+    return response.tx;
   } catch (error) {
     console.error('Failed to create transaction:', error);
     throw error;
@@ -158,12 +209,12 @@ export const createTransaction = async (
 // 签名交易
 export const signTransaction = async (walletId: string, tx: string, chainType: ChainType): Promise<string> => {
   try {
-    const response = await api.post<WalletApiResponse<{ signed_tx: string }>>('/api/transactions/sign', {
+    const response = await api.post<any, SignedTxResponse>('/wallets/tx/sign', {
       wallet_id: walletId,
       tx,
-      chain_type: chainType,
+      chainType: chainType.toString(),
     });
-    return response.data.data.signed_tx;
+    return response.signed_tx;
   } catch (error) {
     console.error('Failed to sign transaction:', error);
     throw error;
@@ -173,12 +224,12 @@ export const signTransaction = async (walletId: string, tx: string, chainType: C
 // 发送交易
 export const sendTransaction = async (walletId: string, signedTx: string, chainType: ChainType): Promise<string> => {
   try {
-    const response = await api.post<WalletApiResponse<{ tx_hash: string }>>('/api/transactions/send', {
+    const response = await api.post<any, TxHashResponse>('/wallets/tx/send', {
       wallet_id: walletId,
       signed_tx: signedTx,
-      chain_type: chainType,
+      chainType: chainType.toString(),
     });
-    return response.data.data.tx_hash;
+    return response.tx_hash;
   } catch (error) {
     console.error('Failed to send transaction:', error);
     throw error;
@@ -188,11 +239,11 @@ export const sendTransaction = async (walletId: string, signedTx: string, chainT
 // 获取交易状态
 export const getTransactionStatus = async (txHash: string, chainType: ChainType): Promise<string> => {
   try {
-    const response = await api.post<WalletApiResponse<{ status: string }>>('/api/transactions/status', {
+    const response = await api.post<any, TxStatusResponse>('/wallets/tx/status', {
       tx_hash: txHash,
-      chain_type: chainType,
+      chainType: chainType.toString(),
     });
-    return response.data.data.status;
+    return response.status;
   } catch (error) {
     console.error('Failed to get transaction status:', error);
     throw error;
@@ -207,13 +258,13 @@ export const getTransactionHistory = async (
   pageSize: number = 10
 ): Promise<Transaction[]> => {
   try {
-    const response = await api.post<WalletApiResponse<{ history: Transaction[] }>>('/api/transactions/history', {
+    const response = await api.post<any, TxHistoryResponse>('/wallets/tx/history', {
       wallet_id: walletId,
-      chain_type: chainType,
+      chainType: chainType.toString(),
       page,
       page_size: pageSize,
     });
-    return response.data.data.history;
+    return response.history;
   } catch (error) {
     console.error('Failed to get transaction history:', error);
     throw error;

@@ -1,15 +1,23 @@
 {
   "server": {
-    "port": 8080
+    "port": "8080",
+    "debug": true
+  },
+  "database": {
+    "host": "localhost",
+    "port": "3306",
+    "user": "root",
+    "password": "root",
+    "dbName": "multi_chain_wallet"
   },
   "wallet": {
-    "encryption_key": "default-encryption-key-replace-in-production"
+    "encryptionKey": "f4db97a3f3fd46f7b16c8007ff2d26a7e9f755a69a947cd54124ade8d0d5e2dd"
   },
   "rpc": {
-    "ethereum": "https://goerli.infura.io/v3/ba9837c192894275a63b69725cb492ff",
-    "bsc": "https://data-seed-prebsc-1-s1.binance.org:8545/",
+    "ethereum": "https://holesky.infura.io/v3/ba9837c192894275a63b69725cb492ff",
+    "bsc": "https://data-seed-prebsc-1-s1.binance.org:8545",
     "polygon": "https://rpc-mumbai.maticvigil.com",
     "solana": "",
-    "sepolia": "https://eth-sepolia.public.blastapi.io"
+    "sepolia": "https://linea-sepolia.infura.io/v3/ba9837c192894275a63b69725cb492ff"
   }
 }

@@ -33,21 +33,21 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-// 定义密钥保存结构
-type encryptedKeyStore struct {
-	ID          string `json:"id"`
-	Address     string `json:"address"`
-	PrivKeyEnc  string `json:"priv_key_enc"`
-	MnemonicEnc string `json:"mnemonic_enc,omitempty"`
-	ChainType   string `json:"chain_type"`
-	CreateTime  int64  `json:"create_time"`
+// KeyStore 钱包密钥库
+type KeyStore struct {
+	ID          string           `json:"id"`
+	Address     string           `json:"address"`
+	PrivKeyEnc  string           `json:"privKeyEnc"`
+	MnemonicEnc string           `json:"mnemonicEnc,omitempty"`
+	ChainType   wallet.ChainType `json:"chainType"`
+	CreateTime  int64            `json:"createTime"`
 }
 
 // BaseETHWallet 以太坊系列钱包基础实现
 type BaseETHWallet struct {
 	client        *ethclient.Client
 	encryptionKey []byte
-	keyMap        map[string]*encryptedKeyStore // walletID -> keystore
+	keyMap        map[string]*KeyStore // walletID -> keystore
 	chainType     wallet.ChainType
 	chainID       *big.Int
 	rpcURL        string
@@ -57,25 +57,33 @@ type BaseETHWallet struct {
 
 // NewBaseETHWallet 创建新的以太坊系列钱包
 func NewBaseETHWallet(chainType wallet.ChainType, rpcURL string, chainID *big.Int, encryptionKey string) (*BaseETHWallet, error) {
+	fmt.Printf("BaseETHWallet: Creating new wallet for chain type: %s\n", chainType)
+
 	client, err := ethclient.Dial(rpcURL)
 	if err != nil {
+		fmt.Printf("BaseETHWallet: Error connecting to RPC: %v\n", err)
 		return nil, fmt.Errorf("failed to connect to %s network: %v", chainType, err)
 	}
+
+	fmt.Printf("BaseETHWallet: Connected to RPC successfully\n")
 
 	// 将加密密钥转换为固定长度密钥
 	// 实际应用中应该使用更安全的密钥派生和存储方式
 	key := sha256.Sum256([]byte(encryptionKey))
 
-	return &BaseETHWallet{
+	wallet := &BaseETHWallet{
 		client:        client,
 		encryptionKey: key[:],
-		keyMap:        make(map[string]*encryptedKeyStore),
+		keyMap:        make(map[string]*KeyStore),
 		chainType:     chainType,
 		chainID:       chainID,
 		rpcURL:        rpcURL,
 		keyDerivPath:  "m/44'/60'/0'/0/0", // 以太坊系列通用路径
 		tokenABI:      "",                 // 在具体实现中设置
-	}, nil
+	}
+
+	fmt.Printf("BaseETHWallet: Wallet created successfully with chain type: %s\n", wallet.ChainType())
+	return wallet, nil
 }
 
 // 生成助记词
@@ -186,7 +194,7 @@ func (w *BaseETHWallet) decrypt(encryptedHex string) ([]byte, error) {
 }
 
 // 保存加密的密钥
-func (w *BaseETHWallet) saveKeyStore(keystore *encryptedKeyStore) error {
+func (w *BaseETHWallet) saveKeyStore(keystore *KeyStore) error {
 	w.keyMap[keystore.ID] = keystore
 	// 实际应用中应该将keystore持久化存储到数据库或文件中
 	return nil
@@ -220,12 +228,12 @@ func (w *BaseETHWallet) Create() (string, error) {
 	}
 
 	// 创建并保存keystore
-	keystore := &encryptedKeyStore{
+	keystore := &KeyStore{
 		ID:          walletID,
 		Address:     address.Hex(),
 		PrivKeyEnc:  privateKeyEnc,
 		MnemonicEnc: mnemonicEnc,
-		ChainType:   string(w.chainType),
+		ChainType:   w.chainType,
 		CreateTime:  time.Now().Unix(),
 	}
 
@@ -264,12 +272,12 @@ func (w *BaseETHWallet) ImportFromMnemonic(mnemonic string) (string, error) {
 	}
 
 	// 创建并保存keystore
-	keystore := &encryptedKeyStore{
+	keystore := &KeyStore{
 		ID:          walletID,
 		Address:     address.Hex(),
 		PrivKeyEnc:  privateKeyEnc,
 		MnemonicEnc: mnemonicEnc,
-		ChainType:   string(w.chainType),
+		ChainType:   w.chainType,
 		CreateTime:  time.Now().Unix(),
 	}
 
@@ -298,11 +306,11 @@ func (w *BaseETHWallet) ImportFromPrivateKey(privateKeyStr string) (string, erro
 	}
 
 	// 创建并保存keystore
-	keystore := &encryptedKeyStore{
+	keystore := &KeyStore{
 		ID:         walletID,
 		Address:    address.Hex(),
 		PrivKeyEnc: privateKeyEnc,
-		ChainType:  string(w.chainType),
+		ChainType:  w.chainType,
 		CreateTime: time.Now().Unix(),
 	}
 

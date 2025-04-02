@@ -16,7 +16,7 @@ func NewSepoliaWallet(rpcURL string, encryptionKey string) (*SepoliaWallet, erro
 	// Sepolia测试网ChainID为11155111
 	chainID := big.NewInt(11155111)
 
-	base, err := NewBaseETHWallet(wallet.SEPOLIA, rpcURL, chainID, encryptionKey)
+	base, err := NewBaseETHWallet(wallet.ChainTypeSepolia, rpcURL, chainID, encryptionKey)
 	if err != nil {
 		return nil, err
 	}

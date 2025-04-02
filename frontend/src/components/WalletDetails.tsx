@@ -22,6 +22,7 @@ import { ChainType, Wallet, Balance } from '../types';
 import { useWallet } from '../context/WalletContext';
 import walletApi from '../api/walletApi';
 import { CopyIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import { log } from 'console';
 
 // 获取链的区块浏览器URL
 const getExplorerUrl = (chainType: ChainType, address: string): string => {
@@ -43,15 +44,15 @@ const getExplorerUrl = (chainType: ChainType, address: string): string => {
 const getChainName = (chainType: ChainType): string => {
   switch (chainType) {
     case ChainType.ETH:
-      return 'Ethereum';
+      return 'ethereum';
     case ChainType.BSC:
-      return 'BSC';
+      return 'bsc';
     case ChainType.Polygon:
-      return 'Polygon';
+      return 'polygon';
     case ChainType.Sepolia:
-      return 'Sepolia';
+      return 'sepolia';
     default:
-      return 'Unknown';
+      return 'unknown';
   }
 };
 
@@ -87,13 +88,34 @@ const WalletDetails: React.FC<WalletDetailsProps> = ({ wallet }) => {
 
   // 获取钱包余额
   const fetchBalance = async () => {
-    if (!wallet) return;
+    if (!wallet) {
+      console.error("Cannot fetch balance: wallet is undefined");
+      return;
+    }
+    
+    console.log("Fetching balance for wallet:", wallet.id, "address:", wallet.address, "chainType:", wallet.chainType);
     
     setLoading(true);
     try {
+      console.log("Wallet details:", wallet);
+      // 确保chainType存在
+      if (!wallet.chainType) {
+        console.error("Wallet chainType is undefined");
+        toast({
+          title: '获取余额失败',
+          description: '钱包链类型未定义',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      
       const response = await walletApi.getBalance(wallet.address, wallet.chainType);
+      console.log("Balance response received:", response);
       setBalance(response);
     } catch (error) {
+      console.error("Error fetching balance:", error);
       toast({
         title: '获取余额失败',
         description: error instanceof Error ? error.message : '获取余额失败',
@@ -108,13 +130,38 @@ const WalletDetails: React.FC<WalletDetailsProps> = ({ wallet }) => {
 
   // 获取代币余额
   const fetchTokenBalance = async () => {
-    if (!wallet || !tokenAddress) return;
+    if (!wallet) {
+      console.error("Cannot fetch token balance: wallet is undefined");
+      return;
+    }
+    
+    if (!tokenAddress) {
+      console.error("Cannot fetch token balance: token address is empty");
+      return;
+    }
+    
+    console.log("Fetching token balance for wallet:", wallet.id, "address:", wallet.address, "token:", tokenAddress, "chainType:", wallet.chainType);
     
     setTokenLoading(true);
     try {
+      // 确保chainType存在
+      if (!wallet.chainType) {
+        console.error("Wallet chainType is undefined");
+        toast({
+          title: '获取代币余额失败',
+          description: '钱包链类型未定义',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      
       const response = await walletApi.getTokenBalance(wallet.address, tokenAddress, wallet.chainType);
+      console.log("Token balance response received:", response);
       setTokenBalance(`${response.balance} ${response.symbol}`);
     } catch (error) {
+      console.error("Error fetching token balance:", error);
       toast({
         title: '获取代币余额失败',
         description: error instanceof Error ? error.message : '获取余额失败',

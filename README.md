@@ -1,157 +1,133 @@
-# Multi-Chain Wallet (Go)
+# 多链钱包
 
-## 项目介绍
-Multi-Chain Wallet 是一个基于 Go 语言开发的多链钱包后端服务，支持多种区块链（以太坊、BSC、Polygon、Solana 等）的钱包管理功能。本项目专注于提供稳定、安全的区块链钱包服务接口，适用于 Web3 应用开发。
-
-## 核心功能
-
-### 1. 钱包管理
-- 创建钱包（生成助记词、私钥和地址）
-- 导入钱包（通过助记词、私钥）
-- 钱包信息安全存储
-
-### 2. 多链支持
-- 以太坊（Ethereum）
-- 币安智能链（BSC）
-- Polygon
-- Solana
-- 支持BIP44标准的其他链
-
-### 3. 交易功能
-- 构建交易
-- 签名交易
-- 发送交易
-- 查询交易状态
-
-### 4. 余额查询
-- 查询各链原生代币余额
-- 查询ERC20/BEP20/SPL代币余额
-
-### 5. API服务
-- RESTful API接口
-- 安全认证
-- 日志记录
-- 异常处理
-
-## 技术栈
-- Go 语言
-- Gin Web框架
-- 以太坊相关库 (go-ethereum)
-- Solana相关库 (go-solana)
-- 数据库: LevelDB/SQLite
-- 密码学: BIP39, BIP44, ECDSA
+这是一个支持多种区块链的钱包管理系统。
 
 ## 项目结构
+
 ```
-multi-chain-wallet/
-├── cmd/                # 命令行入口
-│   └── server/         # API服务器
-├── internal/           # 内部包
-│   ├── config/         # 配置
-│   ├── wallet/         # 钱包核心功能
-│   │   ├── ethereum/   # 以太坊系列
-│   │   └── solana/     # Solana实现
-│   ├── storage/        # 存储服务
-│   └── service/        # 业务逻辑
-├── pkg/                # 公共包
-│   ├── crypto/         # 加密相关
-│   └── utils/          # 工具函数
-├── api/                # API相关
-│   ├── handlers/       # 请求处理
-│   ├── middleware/     # 中间件
-│   └── routes/         # 路由
-├── docs/               # 文档
-├── go.mod              # 依赖管理
-├── go.sum              # 依赖校验
-└── README.md           # 项目说明
+.
+├── cmd/                   # 可执行应用入口
+│   └── api/               # API服务入口
+├── internal/              # 内部实现，不对外暴露
+│   ├── api/               # API服务实现
+│   │   ├── handlers/      # HTTP请求处理器
+│   │   ├── middleware/    # HTTP中间件
+│   │   ├── response/      # 标准HTTP响应
+│   │   └── server.go      # HTTP服务器
+│   ├── config/            # 配置管理
+│   ├── routes/            # API路由
+│   ├── service/           # 业务逻辑
+│   ├── storage/           # 数据存储
+│   └── wallet/            # 钱包实现
+│       ├── ethereum/      # 以太坊系钱包实现
+│       └── ...            # 其他公链实现
+├── frontend/              # 前端代码
+│   ├── public/            # 静态资源
+│   └── src/               # 源代码
+│       ├── api/           # API调用
+│       ├── components/    # UI组件
+│       ├── context/       # React上下文
+│       ├── pages/         # 页面组件
+│       ├── types/         # TypeScript类型
+│       └── utils/         # 工具函数
 ```
 
-## 安装和使用
+## 支持的链
 
-### 前置条件
-- Go 1.21+
-- 访问区块链节点的API密钥（Infura、Alchemy等）
+目前支持以下区块链：
 
-### 安装过程
-1. 克隆仓库
+- 以太坊 (ETH) - Goerli测试网
+- 币安智能链 (BSC) - 测试网
+- Polygon - Mumbai测试网
+- Sepolia测试网
+
+## 主要功能
+
+1. **钱包管理**
+   - 创建和导入钱包（助记词/私钥）
+   - 加密存储私钥
+   - 钱包列表管理
+
+2. **多链资产管理**
+   - 原生代币余额查询
+   - ERC20代币余额查询
+   - 支持多条公链并行操作
+
+3. **交易操作**
+   - 创建交易
+   - 签名交易
+   - 发送交易
+   - 交易记录和状态查询
+
+4. **跨链桥**
+   - 支持在不同链之间转移资产
+   - 原生代币和ERC20代币跨链转账
+   - 交易状态跟踪和历史记录
+
+## 环境配置
+
+通过`.env`文件配置环境变量：
+
+```
+SERVER_PORT=8080
+
+# 数据库配置
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=password
+DB_NAME=wallet
+
+# RPC节点配置
+ETH_RPC=https://goerli.infura.io/v3/YOUR_INFURA_KEY
+SEPOLIA_RPC=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
+BSC_RPC=https://data-seed-prebsc-1-s1.binance.org:8545/
+POLYGON_RPC=https://rpc-mumbai.maticvigil.com/
+
+# 钱包配置
+WALLET_ENCRYPTION_KEY=your-strong-encryption-key
+```
+
+## 启动服务
+
+### 后端服务
 ```bash
-git clone https://github.com/yourusername/multi-chain-wallet.git
-cd multi-chain-wallet
+go run cmd/api/main.go
 ```
 
-2. 安装依赖
+### 前端开发服务器
 ```bash
-go mod tidy
+cd frontend
+npm install
+npm start
 ```
 
-3. 配置环境变量
-创建.env文件并添加必要的配置（API密钥等）
-
-4. 构建和运行
-```bash
-go build -o wallet ./cmd/server
-./wallet
-```
-
-## API接口说明
+## API接口
 
 ### 钱包管理
-- `POST /api/v1/wallets` - 创建新钱包
-- `GET /api/v1/wallets` - 获取钱包列表
-- `GET /api/v1/wallets/:id` - 获取特定钱包信息
-- `POST /api/v1/wallets/import` - 导入钱包
 
-### 交易相关
-- `POST /api/v1/transactions` - 发送交易
-- `GET /api/v1/transactions/:hash` - 查询交易状态
+- `POST /api/v1/wallet/create` - 创建钱包
+- `POST /api/v1/wallet/import` - 导入钱包
+- `POST /api/v1/wallet/import/mnemonic` - 从助记词导入钱包
+- `POST /api/v1/wallet/import/privatekey` - 从私钥导入钱包
+- `GET /api/v1/wallet/info/:id` - 获取钱包信息
+- `GET /api/v1/wallet/list` - 获取钱包列表
 
 ### 余额查询
-- `GET /api/v1/balances/:address` - 查询地址余额
 
-## 开发计划
-1. 基础钱包功能实现（以太坊、BSC、Polygon）
-2. Solana支持
-3. API服务开发
-4. 安全增强
-5. 性能优化
-6. 文档完善
+- `GET /api/v1/wallet/balance/:address` - 获取原生代币余额
+- `GET /api/v1/wallet/token/:address/:tokenAddress` - 获取代币余额
 
-## 安全说明
-- 私钥和助记词永远不会以明文形式存储或传输
-- 所有敏感信息使用AES-256加密
-- API调用需要认证和授权
-- 定期更新依赖以修复安全漏洞
+### 交易管理
 
-## 贡献指南
-欢迎提交Issue和Pull Request，请确保代码符合项目的编码规范和测试要求。
+- `POST /api/v1/wallet/tx/create` - 创建交易
+- `POST /api/v1/wallet/tx/sign` - 签名交易
+- `POST /api/v1/wallet/tx/send` - 发送交易
+- `POST /api/v1/wallet/tx/status` - 获取交易状态
+- `POST /api/v1/wallet/tx/history` - 获取交易历史
 
-## 许可证
-MIT 
+### 跨链桥
 
-## 前后端接口兼容性说明
-
-我们最近对后端API进行了调整，以确保与前端接口定义保持一致。主要更新包括：
-
-1. 调整API路径与前端调用保持一致
-2. 统一参数与返回值命名约定
-3. 添加缺失的API实现(创建交易、签名交易等)
-4. 修复类型不匹配问题
-
-详细信息请参考`docs/api-compatibility-issues.md`和`docs/frontend-backend-compatibility.md`。
-
-## 最近更新
-
-- 添加Sepolia测试网支持
-- 重构钱包管理器实现
-- 完善API路由和处理函数
-- 修复前后端接口兼容性问题
-- 添加项目开发指南文档
-
-## 安全注意事项
-
-- 私钥和助记词存储在本地时会进行加密，但生产环境建议使用更安全的方案
-- 开发阶段请使用测试网络和测试账户
-- 不要在公共代码库中提交真实的私钥或助记词
-
-## 许可证
-MIT 
+- `POST /api/v1/bridge/transfer` - 执行跨链转账
+- `GET /api/v1/bridge/status/:hash` - 查询跨链交易状态
+- `GET /api/v1/bridge/history?address=xxx` - 获取地址的跨链交易历史

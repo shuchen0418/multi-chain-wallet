@@ -20,6 +20,13 @@ export enum TransactionStatus {
   Failed = 'FAILED'
 }
 
+// 跨链交易状态
+export enum BridgeTransactionStatus {
+  Pending = 'PENDING',
+  Completed = 'COMPLETED',
+  Failed = 'FAILED'
+}
+
 // 钱包信息
 export interface Wallet {
   id: string;
@@ -69,26 +76,40 @@ export interface SignedTransaction {
   timestamp: number;
 }
 
+// 跨链交易信息
+export interface BridgeTransaction {
+  txHash: string;
+  fromChain: ChainType | string;
+  toChain: ChainType | string;
+  fromAddress: string;
+  toAddress: string;
+  amount: string;
+  status: BridgeTransactionStatus | string;
+  createTime: number;
+  isTokenTransfer?: boolean;
+  tokenAddress?: string;
+}
+
 // 创建钱包请求
 export interface CreateWalletRequest {
-  chain_type: ChainType;
+  chainType: ChainType;
 }
 
 // 导入钱包请求 - 助记词
 export interface ImportWalletRequest {
-  chain_type: ChainType;
+  chainType: ChainType;
   mnemonic?: string;
   private_key?: string;
 }
 
 // 获取余额请求
 export interface GetBalanceRequest {
-  chain_type: ChainType;
+  chainType: ChainType;
 }
 
 // 获取代币余额请求
 export interface GetTokenBalanceRequest {
-  chain_type: ChainType;
+  chainType: ChainType;
 }
 
 // 创建交易请求
@@ -96,7 +117,7 @@ export interface CreateTransactionRequest {
   from: string;
   to: string;
   amount: string;
-  chain_type: ChainType;
+  chainType: ChainType;
   data?: string;
 }
 
@@ -112,4 +133,15 @@ export interface SendTransactionRequest {
   wallet_id: string;
   signed_tx: string;
   chain_type: ChainType;
+}
+
+// 跨链转账请求
+export interface BridgeTransferRequest {
+  fromChainType: ChainType;
+  toChainType: ChainType;
+  fromAddress: string;
+  toAddress: string;
+  amount: string;
+  tokenAddress?: string;
+  isTokenTransfer?: boolean;
 } 

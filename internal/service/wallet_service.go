@@ -32,29 +32,43 @@ func NewWalletService(manager *wallet.Manager, walletStorage storage.WalletStora
 // CreateWallet 创建新钱包
 func (s *WalletService) CreateWallet(chainType wallet.ChainType) (string, error) {
 	// 创建钱包
+	fmt.Printf("Service: Creating wallet for chain type: %s\n", chainType)
+
+	// 检查钱包管理器中的可用链类型
+	availableChains := s.walletManager.GetSupportedChains()
+	fmt.Printf("Service: Available chain types: %v\n", availableChains)
+
 	walletID, err := s.walletManager.CreateWallet(chainType)
 	if err != nil {
-		return "", err
+		fmt.Printf("Service: Error creating wallet: %v\n", err)
+		return "", fmt.Errorf("failed to create wallet: %v", err)
 	}
 
-	// 获取钱包信息
-	walletInfo, err := s.walletManager.GetWalletInfo(walletID)
+	fmt.Printf("Service: Wallet created successfully with ID: %s\n", walletID)
+
+	// 获取钱包地址
+	address, err := s.walletManager.GetAddress(walletID)
 	if err != nil {
-		return "", err
+		fmt.Printf("Service: Error getting wallet address: %v\n", err)
+		return "", fmt.Errorf("failed to get wallet address: %v", err)
 	}
+
+	fmt.Printf("Service: Got wallet address: %s\n", address)
 
 	// 保存到数据库
 	dbWallet := &storage.Wallet{
-		ID:          walletID,
-		Address:     walletInfo.Address,
-		PrivKeyEnc:  walletInfo.PrivKeyEnc,
-		MnemonicEnc: walletInfo.MnemonicEnc,
-		ChainType:   string(chainType),
-		CreateTime:  walletInfo.CreateTime,
+		ID:         walletID,
+		Address:    address,
+		ChainType:  string(chainType),
+		CreateTime: time.Now().Unix(),
 	}
 
 	if err := s.walletStorage.SaveWallet(dbWallet); err != nil {
-		return "", fmt.Errorf("failed to save wallet to database: %v", err)
+		// 如果保存到数据库失败，我们不应该返回错误，因为钱包已经创建成功
+		// 而是应该记录错误并继续
+		fmt.Printf("Service: Warning: failed to save wallet to database: %v\n", err)
+	} else {
+		fmt.Printf("Service: Wallet saved to database successfully\n")
 	}
 
 	return walletID, nil
@@ -268,4 +282,9 @@ func (s *WalletService) GetTransactionHistory(walletID string) ([]*wallet.Transa
 // GetWalletByChainType 获取指定链类型的钱包实现
 func (s *WalletService) GetWalletByChainType(chainType wallet.ChainType) (wallet.Wallet, bool) {
 	return s.walletManager.GetWallet(chainType)
+}
+
+// GetWalletManager 获取当前的钱包管理器实例
+func (s *WalletService) GetWalletManager() *wallet.Manager {
+	return s.walletManager
 }

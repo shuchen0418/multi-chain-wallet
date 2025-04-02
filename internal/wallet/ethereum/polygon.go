@@ -16,7 +16,7 @@ func NewPolygonWallet(rpcURL string, encryptionKey string) (*PolygonWallet, erro
 	// Polygon主网ChainID为137
 	chainID := big.NewInt(137)
 
-	base, err := NewBaseETHWallet(wallet.Polygon, rpcURL, chainID, encryptionKey)
+	base, err := NewBaseETHWallet(wallet.ChainTypePolygon, rpcURL, chainID, encryptionKey)
 	if err != nil {
 		return nil, err
 	}

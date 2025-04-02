@@ -24,6 +24,7 @@ import CreateWalletForm from '../components/CreateWalletForm';
 import ImportWalletForm from '../components/ImportWalletForm';
 import WalletDetails from '../components/WalletDetails';
 import SendTransaction from '../components/SendTransaction';
+import BridgeView from '../components/BridgeView';
 import { Wallet } from '../types';
 
 const HomePage: React.FC = () => {
@@ -121,6 +122,7 @@ const HomePage: React.FC = () => {
                   <TabList mb="1em">
                     <Tab>发送交易</Tab>
                     <Tab>钱包详情</Tab>
+                    <Tab>跨链桥</Tab>
                   </TabList>
                   <TabPanels>
                     <TabPanel>
@@ -128,6 +130,9 @@ const HomePage: React.FC = () => {
                     </TabPanel>
                     <TabPanel>
                       <WalletDetails wallet={selectedWallet} />
+                    </TabPanel>
+                    <TabPanel>
+                      <BridgeView />
                     </TabPanel>
                   </TabPanels>
                 </Tabs>
