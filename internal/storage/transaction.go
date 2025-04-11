@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"multi-chain-wallet/internal/wallet"
 	"time"
 )
 
@@ -54,4 +55,18 @@ func (s *MySQLTransactionStorage) GetBridgeTransactionsByAddress(address string)
 // InitBridgeTransactionsTable 初始化跨链交易表
 func InitBridgeTransactionsTable() error {
 	return DB.AutoMigrate(&BridgeTransaction{})
+}
+
+// GetPendingTransactions 获取所有待处理的交易
+func (s *MySQLTransactionStorage) GetPendingTransactions() ([]Transaction, error) {
+	var txs []Transaction
+	err := DB.Where("status = ?", wallet.TxPending).Find(&txs).Error
+	return txs, err
+}
+
+// GetPendingBridgeTransactions 获取所有待处理的跨链交易
+func (s *MySQLTransactionStorage) GetPendingBridgeTransactions() ([]BridgeTransaction, error) {
+	var txs []BridgeTransaction
+	err := DB.Where("status = ?", wallet.TxPending).Find(&txs).Error
+	return txs, err
 }

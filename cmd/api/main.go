@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/big"
 	"os"
 	"strings"
 
@@ -13,128 +12,110 @@ import (
 	"multi-chain-wallet/internal/service"
 	"multi-chain-wallet/internal/storage"
 	"multi-chain-wallet/internal/wallet"
+	"multi-chain-wallet/internal/wallet/bsc"
 	"multi-chain-wallet/internal/wallet/ethereum"
+	"multi-chain-wallet/internal/wallet/polygon"
+	"multi-chain-wallet/internal/wallet/sepolia"
 )
 
 func main() {
 	// 加载配置
 	log.Printf("正在加载.env配置文件...")
-	cfg, err := config.LoadConfig(".env")
-	if err != nil {
-		log.Fatalf("配置加载失败: %v", err)
+	if err := config.LoadConfig(); err != nil {
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	// 如果命令行中包含-port参数，则覆盖配置文件中的端口
 	if port := getPortFromArgs(); port > 0 {
-		cfg.Server.Port = fmt.Sprintf("%d", port)
+		config.SetServerPort(fmt.Sprintf("%d", port))
 	}
 
 	// 打印配置信息
-	logConfig(cfg)
+	logConfig()
 
 	log.Printf("多链钱包服务 v0.1")
 	log.Printf("支持链: Ethereum, BSC, Polygon")
-	log.Printf("服务端口: %s", cfg.Server.Port)
-	log.Printf("数据库配置: %s:%s/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
+	log.Printf("服务端口: %s", config.GetServerPort())
+	log.Printf("数据库配置: %s:%s/%s", config.GetDBHost(), config.GetDBPort(), config.GetDBName())
 	log.Printf("使用RPC: ETH=%s, BSC=%s, POLYGON=%s, SEPOLIA=%s",
-		trimRPCURL(cfg.RPC.Ethereum),
-		trimRPCURL(cfg.RPC.BSC),
-		trimRPCURL(cfg.RPC.Polygon),
-		trimRPCURL(cfg.RPC.Sepolia))
+		trimRPCURL(config.GetEthereumRPC()),
+		trimRPCURL(config.GetBSCRPC()),
+		trimRPCURL(config.GetPolygonRPC()),
+		trimRPCURL(config.GetSepoliaRPC()))
 
-	// 初始化MySQL数据库连接
-	log.Printf("正在连接MySQL数据库: %s:%s/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
-	err = storage.InitDB(
-		cfg.Database.Host,
-		cfg.Database.Port,
-		cfg.Database.User,
-		cfg.Database.Password,
-		cfg.Database.DBName,
-	)
-	if err != nil {
-		log.Fatalf("数据库初始化失败: %v", err)
+	// 初始化数据库
+	log.Printf("正在连接MySQL数据库: %s:%s/%s", config.GetDBHost(), config.GetDBPort(), config.GetDBName())
+	if err := storage.InitDB(
+		config.GetDBHost(),
+		config.GetDBPort(),
+		config.GetDBUser(),
+		config.GetDBPassword(),
+		config.GetDBName(),
+	); err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	log.Printf("数据库初始化成功")
 
-	// 尝试初始化钱包服务
+	// 初始化钱包管理器
 	walletManager := wallet.NewManager()
-	log.Printf("Wallet manager initialized")
 
-	// 初始化各区块链的钱包
-	// 以太坊钱包 (测试网)
-	if cfg.RPC.Ethereum != "" {
-		ethWallet, err := ethereum.NewBaseETHWallet(wallet.ChainTypeETH, cfg.RPC.Ethereum, big.NewInt(5), cfg.Wallet.EncryptionKey)
-		if err != nil {
-			log.Printf("Warning: Failed to initialize Ethereum wallet: %v", err)
-		} else {
-			walletManager.RegisterWallet(ethWallet)
-			log.Printf("Ethereum wallet registered successfully")
-		}
-	} else {
-		log.Printf("Skipping Ethereum wallet initialization: RPC URL not configured")
-	}
-
-	// Sepolia测试网
-	if cfg.RPC.Sepolia != "" {
-		sepoliaWallet, err := ethereum.NewBaseETHWallet(wallet.ChainTypeSepolia, cfg.RPC.Sepolia, big.NewInt(11155111), cfg.Wallet.EncryptionKey)
-		if err != nil {
-			log.Printf("Warning: Failed to initialize Sepolia wallet: %v", err)
-		} else {
-			walletManager.RegisterWallet(sepoliaWallet)
-			log.Printf("Sepolia wallet registered successfully")
-		}
-	} else {
-		log.Printf("Skipping Sepolia wallet initialization: RPC URL not configured")
-	}
-
-	// BSC钱包 (测试网)
-	if cfg.RPC.BSC != "" {
-		bscWallet, err := ethereum.NewBaseETHWallet(wallet.ChainTypeBSC, cfg.RPC.BSC, big.NewInt(97), cfg.Wallet.EncryptionKey)
-		if err != nil {
-			log.Printf("Warning: Failed to initialize BSC wallet: %v", err)
-		} else {
-			walletManager.RegisterWallet(bscWallet)
-			log.Printf("BSC wallet registered successfully")
-		}
-	} else {
-		log.Printf("Skipping BSC wallet initialization: RPC URL not configured")
-	}
-
-	// Polygon钱包 (Mumbai测试网)
-	if cfg.RPC.Polygon != "" {
-		polygonWallet, err := ethereum.NewBaseETHWallet(wallet.ChainTypePolygon, cfg.RPC.Polygon, big.NewInt(80001), cfg.Wallet.EncryptionKey)
-		if err != nil {
-			log.Printf("Warning: Failed to initialize Polygon wallet: %v", err)
-		} else {
-			walletManager.RegisterWallet(polygonWallet)
-			log.Printf("Polygon wallet registered successfully")
-		}
-	} else {
-		log.Printf("Skipping Polygon wallet initialization: RPC URL not configured")
-	}
+	// 注册支持的钱包类型
+	walletManager.RegisterWallet(wallet.ChainTypeETH, ethereum.NewWallet)
+	walletManager.RegisterWallet(wallet.ChainTypeBSC, bsc.NewWallet)
+	walletManager.RegisterWallet(wallet.ChainTypePolygon, polygon.NewWallet)
+	walletManager.RegisterWallet(wallet.ChainTypeSepolia, sepolia.NewWallet)
 
 	// 日志输出支持的链类型
 	log.Printf("应用支持的链: %v", walletManager.GetSupportedChains())
 
-	// 创建存储实例
-	walletStorage := &storage.MySQLWalletStorage{}
-	txStorage := &storage.MySQLTransactionStorage{}
+	// 初始化交易存储
+	txStorage := storage.NewMySQLTransactionStorage()
 
-	walletService := service.NewWalletService(walletManager, walletStorage, txStorage)
-	log.Printf("Wallet service created")
+	// 初始化订单存储
+	orderStorage := storage.NewMySQLOrderStorage()
 
-	// 创建API服务器
+	// 初始化必要的表
+	if err := txStorage.InitTransactionTable(); err != nil {
+		log.Fatalf("Failed to initialize transaction table: %v", err)
+	}
+
+	if err := txStorage.InitBridgeTransactionTable(); err != nil {
+		log.Fatalf("Failed to initialize bridge transaction table: %v", err)
+	}
+
+	if err := orderStorage.InitOrderTable(); err != nil {
+		log.Fatalf("Failed to initialize order table: %v", err)
+	}
+
+	// 初始化钱包服务
+	walletService := service.NewWalletService(walletManager, txStorage)
+
+	// 初始化跨链服务
+	bridgeService := service.NewBridgeService(walletService, txStorage)
+
+	// 初始化DEX服务
+	dexService := service.NewDEXService(walletService, txStorage, orderStorage)
+
+	// 初始化调度器服务
+	schedulerService := service.NewSchedulerService(txStorage, walletService)
+
+	// 启动调度器服务
+	schedulerService.Start()
+
+	// 创建HTTP服务器
 	server := api.NewServer(walletService, walletManager)
 
-	// 注册路由
-	walletRoutes := routes.NewWalletRoutes(walletService, walletManager)
-	server.RegisterHandler(walletRoutes)
+	// 注册处理器
+	server.RegisterHandler(routes.NewWalletRoutes(walletService, walletManager))
+	server.RegisterHandler(routes.NewBridgeRoutes(bridgeService))
+	server.RegisterHandler(routes.NewDEXRoutes(dexService))
 
-	// 启动服务器
-	serverAddr := fmt.Sprintf(":%s", cfg.Server.Port)
-	log.Printf("正在启动服务器 %s", serverAddr)
-	if err := server.Run(serverAddr); err != nil {
-		log.Fatalf("服务器启动失败: %v", err)
+	// 启动HTTP服务器
+	addr := fmt.Sprintf(":%s", config.GetServerPort())
+	log.Printf("服务器启动于 %s，支持的链类型: %v", addr, walletManager.GetSupportedChains())
+	log.Printf("已启用DEX功能：支持集中流动性AMM交易与限价订单")
+	if err := server.Run(addr); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
 }
 
@@ -164,6 +145,6 @@ func getPortFromArgs() int {
 	return 0
 }
 
-func logConfig(cfg *config.Config) {
+func logConfig() {
 	// Implementation of logConfig function
 }

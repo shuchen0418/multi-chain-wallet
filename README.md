@@ -64,6 +64,20 @@
    - 原生代币和ERC20代币跨链转账
    - 交易状态跟踪和历史记录
 
+## 功能特色
+
+- 多链钱包管理：支持以太坊、BSC、Polygon和Sepolia测试网
+- 钱包创建与恢复：支持助记词和私钥导入
+- 交易管理：支持发送交易和查询交易状态
+- 余额查询：支持原生代币和ERC20代币余额查询
+- 跨链转账：支持不同链之间的资产转移
+- 安全存储：使用AES-256加密存储私钥
+- DEX交易功能：
+  - 集中流动性AMM：高效路径计算与链上兑换
+  - 限价订单功能：支持Tick精度控制与链上撮合
+  - 交易路径优化：支持多池跨链最优路径计算
+  - 价格影响分析：显示交易滑点和价格影响
+
 ## 环境配置
 
 通过`.env`文件配置环境变量：
@@ -131,3 +145,84 @@ npm start
 - `POST /api/v1/bridge/transfer` - 执行跨链转账
 - `GET /api/v1/bridge/status/:hash` - 查询跨链交易状态
 - `GET /api/v1/bridge/history?address=xxx` - 获取地址的跨链交易历史
+
+### DEX API
+
+#### 1. 获取兑换报价
+
+```
+POST /api/v1/dex/quote
+```
+
+请求参数:
+```json
+{
+    "chainType": "ETH",
+    "fromToken": "0x...",
+    "toToken": "0x...",
+    "amount": "1000000000000000000"
+}
+```
+
+#### 2. 执行代币兑换
+
+```
+POST /api/v1/dex/swap
+```
+
+请求参数:
+```json
+{
+    "walletId": "wallet_123",
+    "chainType": "ETH",
+    "fromToken": "0x...",
+    "toToken": "0x...",
+    "amount": "1000000000000000000",
+    "minReceived": "990000000000000000"
+}
+```
+
+#### 3. 创建限价订单
+
+```
+POST /api/v1/dex/limit-order
+```
+
+请求参数:
+```json
+{
+    "walletId": "wallet_123",
+    "chainType": "ETH",
+    "fromToken": "0x...",
+    "toToken": "0x...",
+    "amount": "1000000000000000000",
+    "limitPrice": "2000000000000000000"
+}
+```
+
+#### 4. 取消限价订单
+
+```
+POST /api/v1/dex/cancel-order
+```
+
+请求参数:
+```json
+{
+    "walletId": "wallet_123",
+    "chainType": "ETH",
+    "orderId": "order_123"
+}
+```
+
+#### 5. 获取订单状态
+
+```
+GET /api/v1/dex/order/:id
+```
+
+#### 6. 获取用户订单列表
+
+```
+GET /api/v1/dex/orders?walletId=wallet_123
+```
